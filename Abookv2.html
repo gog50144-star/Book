@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📒 Buku Catatan Digital V2</title>
+  <style>
+    /* Palet Warna & Font */
+    :root {
+      --bg-color: #1a1a2e;        /* Latar belakang gelap */
+      --card-bg-color: #2c2c54;   /* Latar belakang kartu catatan */
+      --text-color: #e6e6e6;      /* Warna teks terang */
+      --primary-color: #ff6b6b;   /* Warna aksi/tombol utama */
+      --secondary-color: #4ecdc4; /* Warna sekunder/tanggal */
+      --input-bg-color: #3f3f7a;  /* Latar belakang input */
+      --shadow-color: rgba(0, 0, 0, 0.4);
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 30px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      transition: background 0.3s;
+    }
+
+    /* Judul Utama */
+    h1 {
+      color: var(--primary-color);
+      text-align: center;
+      margin-bottom: 30px;
+      letter-spacing: 1.5px;
+      text-shadow: 2px 2px 5px var(--shadow-color);
+    }
+
+    /* Area Input */
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 15px;
+      margin-bottom: 15px;
+      border: none;
+      border-radius: 8px;
+      background: var(--input-bg-color);
+      color: var(--text-color);
+      box-shadow: inset 0 2px 4px var(--shadow-color);
+      resize: vertical;
+      font-size: 16px;
+      transition: box-shadow 0.3s, background 0.3s;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 10px var(--primary-color), inset 0 2px 4px var(--shadow-color);
+    }
+
+    /* Tombol Aksi */
+    button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 50px; /* Bentuk pil */
+      cursor: pointer;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px var(--shadow-color); /* Efek 3D awal */
+    }
+
+    button:hover {
+      transform: translateY(-2px); /* Efek hover 3D */
+      box-shadow: 0 6px 10px var(--shadow-color);
+    }
+
+    button:active {
+      transform: translateY(1px); /* Efek klik 3D */
+      box-shadow: 0 2px 4px var(--shadow-color);
+    }
+
+    /* Tombol Simpan */
+    button:nth-of-type(1) { /* Simpan */
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* Tombol Hapus Semua */
+    button:nth-of-type(2) { /* Hapus Semua */
+      background: var(--secondary-color);
+      color: var(--bg-color);
+    }
+
+    /* Area Catatan */
+    #catatan {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    /* Setiap Catatan (Entry) */
+    .entry {
+      background: var(--card-bg-color);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px var(--shadow-color); /* Efek 3D */
+      transition: transform 0.3s, box-shadow 0.3s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .entry:hover {
+      transform: translateY(-5px); /* Sedikit naik saat hover */
+      box-shadow: 0 10px 20px var(--shadow-color);
+    }
+
+    .entry strong {
+      display: block;
+      font-size: 1.2em;
+      color: var(--primary-color);
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--input-bg-color);
+      padding-bottom: 5px;
+    }
+
+    .entry p {
+      margin-top: 0;
+      white-space: pre-wrap; /* Mempertahankan format baris baru */
+    }
+
+    .entry .metadata {
+      font-size: 0.8em;
+      color: var(--secondary-color);
+      margin-top: 15px;
+      text-align: right;
+    }
+
+    .entry button {
+      background: #7a1d1d; /* Merah gelap untuk hapus */
+      color: white;
+      padding: 5px 10px;
+      font-size: 0.9em;
+      border-radius: 5px;
+      align-self: flex-end;
+      margin-top: 10px;
+    }
+
+    /* Responsif */
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+      button {
+        display: block;
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+      }
+      #catatan {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>📒 Buku Catatan Digital by Aerlune</h1>
+  
+  <input type="text" id="judul" placeholder="JUDUL CATATAN"><br>
+  <textarea id="isi" placeholder="Tulis catatanmu di sini..."></textarea><br>
+  <button onclick="simpanCatatan()">➕ Simpan Catatan</button>
+  <button onclick="hapusSemua()">🗑️ Hapus Semua</button>
+  
+  <div id="catatan"></div>
+
+  <script>
+    // Fungsi untuk memformat tanggal dan waktu
+    function formatTanggal(timestamp) {
+        const date = new Date(timestamp);
+        const options = { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: false // Format 24 jam
+        };
+        return date.toLocaleDateString('id-ID', options);
+    }
+
+    // Fungsi untuk menampilkan semua catatan
+    function tampilkanCatatan() {
+      // Mengambil data dari localStorage, default array kosong
+      let catatan = JSON.parse(localStorage.getItem('bukuMisteri')) || [];
+      let html = '';
+
+      // Tampilkan catatan terbaru di atas
+      catatan.reverse().forEach((c, indexReverse) => {
+        // Karena kita membalik array untuk tampilan, kita perlu menghitung indeks asli untuk hapus
+        const indexAsli = catatan.length - 1 - indexReverse;
+        
+        // Memasukkan metadata waktu penyimpanan
+        const tanggalWaktu = c.timestamp ? formatTanggal(c.timestamp) : 'Tidak ada data waktu';
+
+        html += `
+          <div class="entry">
+            <div>
+              <strong>${c.judul}</strong>
+              <p>${c.isi}</p>
+            </div>
+            <div class="metadata">
+              Disimpan: ${tanggalWaktu}
+            </div>
+            <button onclick="hapusCatatan(${indexAsli})">Hapus</button>
+          </div>
+        `;
+      });
+
+      document.getElementById('catatan').innerHTML = html;
+    }
+
+    // Fungsi untuk menyimpan catatan baru
+    function simpanCatatan() {
+      let judul = document.getElementById('judul').value.trim();
+      let isi = document.getElementById('isi').value.trim();
+
+      if (!judul || !isi) {
+        alert('❗ Judul dan Isi Catatan harus diisi!');
+        return;
+      }
+
+      // Mendapatkan waktu saat ini
+      const timestamp = new Date().getTime();
+
+      let catatan = JSON.parse(localStorage.getItem('bukuMisteri')) || [];
+      // Menambahkan objek catatan baru, termasuk timestamp
+      catatan.push({judul, isi, timestamp}); 
+
+      localStorage.setItem('bukuMisteri', JSON.stringify(catatan));
+
+      // Reset input form
+      document.getElementById('judul').value = '';
+      document.getElementById('isi').value = '';
+
+      tampilkanCatatan();
+    }
+
+    // Fungsi untuk menghapus catatan tertentu
+    function hapusCatatan(index) {
+      let catatan = JSON.parse(localStorage.getItem('bukuMisteri')) || [];
+      const judulDihapus = catatan[index].judul;
+      
+      if (confirm(`Yakin hapus catatan: "${judulDihapus}"?`)) {
+        catatan.splice(index, 1);
+        localStorage.setItem('bukuMisteri', JSON.stringify(catatan));
+        tampilkanCatatan();
+      }
+    }
+
+    // Fungsi untuk menghapus semua catatan
+    function hapusSemua() {
+      if (confirm('⚠️ Yakin mau hapus SEMUA catatan? Aksi ini tidak bisa dibatalkan!')) {
+        localStorage.removeItem('bukuMisteri');
+        tampilkanCatatan();
+      }
+    }
+
+    // Tampilkan catatan saat pertama kali dibuka
+    tampilkanCatatan();
+  </script>
+</body>
+</html>
