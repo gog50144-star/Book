@@ -31,6 +31,7 @@
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
   transition: transform .2s ease, box-shadow .2s ease;
+  cursor: pointer;
 }
 
 .card:hover {
@@ -54,47 +55,106 @@ img, video {
   word-break: break-all;
 }
 
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal img,
+.modal video {
+  max-width: 95%;
+  max-height: 90%;
+  border-radius: 14px;
+}
+
+.close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 28px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.1);
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+
   </style>
 </head>
 <body>
-  <header>Galeri Media Otomatis</header>  <div class="gallery" id="gallery"></div>  <script>
+  <header>Galeri Media</header>  <div class="gallery" id="gallery"></div>  <div class="modal" id="modal">
+    <div class="close" onclick="closeModal()">✕</div>
+    <div id="modalContent"></div>
+  </div>  <script>
     const gallery = document.getElementById('gallery');
+    const modal = document.getElementById('modal');
+    const modalContent = document.getElementById('modalContent');
 
-    // GitHub Pages TIDAK mengizinkan baca isi folder otomatis.
-    // Jadi kita pakai daftar file otomatis berdasarkan pola nama.
+    // DAFTAR FILE FIX (tidak pakai tebak lagi)
+    const mediaFiles = [
+      "1.mp4",
+      "2.mp4",
+      "3.mp4",
+      "4.mp4",
+      "5.mp4",
+      "1.png",
+      "2.png",
+      "3.png"
+    ];
 
-    const totalFiles = 50; // ubah sesuai jumlah media kamu
+    function openModal(type, src) {
+      modal.style.display = 'flex';
+      modalContent.innerHTML = '';
 
-    const imageExt = ['jpg','jpeg','png','webp','gif'];
-    const videoExt = ['mp4','webm','ogg'];
+      if (type === 'image') {
+        modalContent.innerHTML = `<img src="${src}">`;
+      }
+
+      if (type === 'video') {
+        modalContent.innerHTML = `<video src="${src}" controls autoplay></video>`;
+      }
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+      modalContent.innerHTML = '';
+    }
 
     function createMedia(file) {
       const ext = file.split('.').pop().toLowerCase();
-
       const card = document.createElement('div');
       card.className = 'card';
 
-      if (imageExt.includes(ext)) {
+      if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp') {
         card.innerHTML = `
           <img src="${file}" loading="lazy">
           <div class="name">${file}</div>
         `;
+        card.onclick = () => openModal('image', file);
       }
 
-      if (videoExt.includes(ext)) {
+      if (ext === 'mp4' || ext === 'webm' || ext === 'ogg') {
         card.innerHTML = `
-          <video src="${file}" controls></video>
+          <video src="${file}"></video>
           <div class="name">${file}</div>
         `;
+        card.onclick = () => openModal('video', file);
       }
 
       gallery.appendChild(card);
     }
 
-    // coba generate nama file: 1.jpg,1.png,1.mp4 dst
-    for (let i = 1; i <= totalFiles; i++) {
-      imageExt.forEach(ext => createMedia(`${i}.${ext}`));
-      videoExt.forEach(ext => createMedia(`${i}.${ext}`));
-    }
+    mediaFiles.forEach(file => createMedia(file));
+
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) closeModal();
+    });
   </script></body>
 </html>
