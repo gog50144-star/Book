@@ -60,49 +60,41 @@ img, video {
   <header>Galeri Media Otomatis</header>  <div class="gallery" id="gallery"></div>  <script>
     const gallery = document.getElementById('gallery');
 
+    // GitHub Pages TIDAK mengizinkan baca isi folder otomatis.
+    // Jadi kita pakai daftar file otomatis berdasarkan pola nama.
+
+    const totalFiles = 50; // ubah sesuai jumlah media kamu
+
     const imageExt = ['jpg','jpeg','png','webp','gif'];
     const videoExt = ['mp4','webm','ogg'];
 
-    async function loadMedia() {
-      try {
-        const res = await fetch('./');
-        const text = await res.text();
+    function createMedia(file) {
+      const ext = file.split('.').pop().toLowerCase();
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, 'text/html');
-        const links = Array.from(doc.querySelectorAll('a'));
+      const card = document.createElement('div');
+      card.className = 'card';
 
-        links.forEach(link => {
-          const file = link.getAttribute('href');
-          if (!file) return;
-
-          const ext = file.split('.').pop().toLowerCase();
-
-          if (imageExt.includes(ext)) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-              <img src="${file}" loading="lazy" />
-              <div class="name">${file}</div>
-            `;
-            gallery.appendChild(card);
-          }
-
-          if (videoExt.includes(ext)) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerHTML = `
-              <video src="${file}" controls></video>
-              <div class="name">${file}</div>
-            `;
-            gallery.appendChild(card);
-          }
-        });
-      } catch(e) {
-        gallery.innerHTML = '<div style="padding:20px;text-align:center;opacity:.7">Tidak bisa membaca folder. Jalankan lewat localhost/server.</div>';
+      if (imageExt.includes(ext)) {
+        card.innerHTML = `
+          <img src="${file}" loading="lazy">
+          <div class="name">${file}</div>
+        `;
       }
+
+      if (videoExt.includes(ext)) {
+        card.innerHTML = `
+          <video src="${file}" controls></video>
+          <div class="name">${file}</div>
+        `;
+      }
+
+      gallery.appendChild(card);
     }
 
-    loadMedia();
+    // coba generate nama file: 1.jpg,1.png,1.mp4 dst
+    for (let i = 1; i <= totalFiles; i++) {
+      imageExt.forEach(ext => createMedia(`${i}.${ext}`));
+      videoExt.forEach(ext => createMedia(`${i}.${ext}`));
+    }
   </script></body>
 </html>
