@@ -1,160 +1,316 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Media Gallery</title>
+  <title>Premium Media Gallery</title>
   <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --accent-color: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f172a, #020617);
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, #0f172a);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 24px;
+      padding: 0 24px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      border-color: var(--accent-color);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .media-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    img, video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Icon Overlay for Video */
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.2);
+      transition: opacity 0.3s;
+    }
+
+    .play-button {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .play-button::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 8px 0 8px 14px;
+      border-color: transparent transparent transparent #fff;
+      margin-left: 4px;
+    }
+
+    .info {
+      padding: 16px;
+    }
+
+    .name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    /* Modal Styling */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      position: relative;
+      max-width: 90%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .modal-content img,
+    .modal-content video {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      object-fit: contain;
+      background: transparent;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: -50px;
+      right: 0;
       color: white;
-    }header {
-  text-align: center;
-  padding: 24px;
-  font-size: 26px;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
+      font-size: 32px;
+      cursor: pointer;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--card-bg);
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
 
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
-  padding: 20px;
-}
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
 
-.card {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  transition: transform .2s ease, box-shadow .2s ease;
-  cursor: pointer;
-}
-
-.card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 14px 40px rgba(0,0,0,0.6);
-}
-
-img, video {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  display: block;
-  background: black;
-}
-
-.name {
-  padding: 10px 12px;
-  font-size: 14px;
-  opacity: .8;
-  text-align: center;
-  word-break: break-all;
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.9);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.modal img,
-.modal video {
-  max-width: 95%;
-  max-height: 90%;
-  border-radius: 14px;
-}
-
-.close {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 28px;
-  cursor: pointer;
-  background: rgba(255,255,255,0.1);
-  padding: 8px 14px;
-  border-radius: 10px;
-}
-
+    @media (max-width: 640px) {
+      .gallery {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 0 16px 20px;
+      }
+      .media-container { height: 150px; }
+      header h1 { font-size: 1.5rem; }
+    }
   </style>
 </head>
 <body>
-  <header>Galeri Media</header>  <div class="gallery" id="gallery"></div>  <div class="modal" id="modal">
-    <div class="close" onclick="closeModal()">✕</div>
-    <div id="modalContent"></div>
-  </div>  <script>
-    const gallery = document.getElementById('gallery');
-    const modal = document.getElementById('modal');
-    const modalContent = document.getElementById('modalContent');
 
-    // DAFTAR FILE FIX (tidak pakai tebak lagi)
+  <header>
+    <h1>Galeri Media Digital</h1>
+    <p>Koleksi Foto & Video Eksklusif</p>
+  </header>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="close-btn" onclick="closeModal()">×</div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const galleryContainer = document.getElementById('gallery');
+    const modal = document.getElementById('modal');
+    const modalBody = document.getElementById('modalBody');
+
+    // Daftar file Anda
     const mediaFiles = [
-      "1.mp4",
-      "2.mp4",
-      "3.mp4",
-      "4.mp4",
-      "5.mp4",
-      "1.png",
-      "2.png",
-      "3.png"
+      "1.mp4", "2.mp4", "3.mp4", "4.mp4", "5.mp4",
+      "1.png", "2.png", "3.png"
     ];
+
+    // Fungsi untuk memvalidasi tipe file
+    function getFileType(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      const images = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+      const videos = ['mp4', 'webm', 'ogg', 'mov'];
+      
+      if (images.includes(ext)) return 'image';
+      if (videos.includes(ext)) return 'video';
+      return null;
+    }
 
     function openModal(type, src) {
       modal.style.display = 'flex';
-      modalContent.innerHTML = '';
-
+      document.body.style.overflow = 'hidden'; // Stop scrolling
+      
       if (type === 'image') {
-        modalContent.innerHTML = `<img src="${src}">`;
-      }
-
-      if (type === 'video') {
-        modalContent.innerHTML = `<video src="${src}" controls autoplay></video>`;
+        modalBody.innerHTML = `<img src="${src}" alt="Preview">`;
+      } else {
+        modalBody.innerHTML = `
+          <video controls autoplay playsinline style="width:100%">
+            <source src="${src}">
+            Browser Anda tidak mendukung tag video.
+          </video>`;
       }
     }
 
     function closeModal() {
       modal.style.display = 'none';
-      modalContent.innerHTML = '';
+      document.body.style.overflow = 'auto'; // Re-enable scrolling
+      modalBody.innerHTML = '';
     }
 
-    function createMedia(file) {
-      const ext = file.split('.').pop().toLowerCase();
+    function createCard(file) {
+      const type = getFileType(file);
+      if (!type) return;
+
       const card = document.createElement('div');
       card.className = 'card';
+      
+      // Menggunakan fallback jika file tidak ditemukan
+      const fallbackAttr = `onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Error+Loading'"`;
 
-      if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp') {
-        card.innerHTML = `
-          <img src="${file}" loading="lazy">
-          <div class="name">${file}</div>
-        `;
-        card.onclick = () => openModal('image', file);
+      let mediaHtml = '';
+      if (type === 'image') {
+        mediaHtml = `
+          <div class="media-container">
+            <img src="${file}" loading="lazy" ${fallbackAttr}>
+          </div>`;
+      } else {
+        mediaHtml = `
+          <div class="media-container">
+            <video src="${file}" muted preload="metadata"></video>
+            <div class="video-overlay">
+              <div class="play-button"></div>
+            </div>
+          </div>`;
       }
 
-      if (ext === 'mp4' || ext === 'webm' || ext === 'ogg') {
-        card.innerHTML = `
-          <video src="${file}"></video>
+      card.innerHTML = `
+        ${mediaHtml}
+        <div class="info">
           <div class="name">${file}</div>
-        `;
-        card.onclick = () => openModal('video', file);
-      }
+        </div>
+      `;
 
-      gallery.appendChild(card);
+      card.onclick = () => openModal(type, file);
+      galleryContainer.appendChild(card);
     }
 
-    mediaFiles.forEach(file => createMedia(file));
+    // Inisialisasi Galeri
+    mediaFiles.forEach(file => createCard(file));
 
-    modal.addEventListener('click', function(e) {
+    // Event Listeners
+    modal.addEventListener('click', (e) => {
       if (e.target === modal) closeModal();
     });
-  </script></body>
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+  </script>
+</body>
 </html>
+
