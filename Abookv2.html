@@ -1,582 +1,201 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Premium Media Gallery & Upload</title>
-  <style>
-    :root {
-      --bg-color: #0f172a;
-      --card-bg: rgba(255, 255, 255, 0.05);
-      --accent-color: #38bdf8;
-      --accent-hover: #0ea5e9;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-    }
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from 'firebase/firestore';
 
-    body {
-      margin: 0;
-      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-      background: radial-gradient(circle at top, #1e293b, #0f172a);
-      color: var(--text-main);
-      min-height: 100vh;
-      line-height: 1.5;
-    }
+// --- CONFIGURATION ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'media-gallery-app';
 
-    header {
-      text-align: center;
-      padding: 40px 20px 20px;
-    }
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [mediaList, setMediaList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalMedia, setModalMedia] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
-    header h1 {
-      margin: 0;
-      font-size: 2.2rem;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      background: linear-gradient(to right, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    /* Upload Section Styles */
-    .upload-section {
-      max-width: 600px;
-      margin: 0 auto 40px;
-      padding: 0 24px;
-    }
-
-    .upload-container {
-      background: rgba(255, 255, 255, 0.03);
-      border: 2px dashed rgba(255, 255, 255, 0.15);
-      border-radius: 20px;
-      padding: 30px;
-      text-align: center;
-      transition: all 0.3s ease;
-      cursor: pointer;
-    }
-
-    .upload-container:hover {
-      border-color: var(--accent-color);
-      background: rgba(56, 189, 248, 0.05);
-    }
-
-    .upload-container i {
-      display: block;
-      font-size: 2rem;
-      margin-bottom: 10px;
-    }
-
-    #fileInput {
-      display: none;
-    }
-
-    .btn-upload {
-      display: inline-block;
-      background: var(--accent-color);
-      color: #000;
-      padding: 10px 24px;
-      border-radius: 12px;
-      font-weight: 600;
-      margin-top: 10px;
-      transition: background 0.2s;
-    }
-
-    .btn-upload:hover {
-      background: var(--accent-hover);
-    }
-
-    /* Gallery Styles */
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 24px;
-      padding: 0 24px 40px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      overflow: hidden;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      position: relative;
-    }
-
-    .card:hover {
-      transform: translateY(-8px);
-      border-color: var(--accent-color);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-    }
-
-    .new-badge {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: var(--accent-color);
-      color: #000;
-      font-size: 10px;
-      font-weight: bold;
-      padding: 2px 8px;
-      border-radius: 6px;
-      z-index: 10;
-    }
-
-    .media-container {
-      position: relative;
-      width: 100%;
-      height: 200px;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    img, video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .video-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    .play-button {
-      width: 48px;
-      height: 48px;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(4px);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-    }
-
-    .play-button::after {
-      content: '';
-      width: 0;
-      height: 0;
-      border-style: solid;
-      border-width: 8px 0 8px 14px;
-      border-color: transparent transparent transparent #fff;
-      margin-left: 4px;
-    }
-
-    .info {
-      padding: 16px;
-    }
-
-    .name {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-main);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: center;
-    }
-
-    /* Modal Styles */
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(2, 6, 23, 0.95);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .modal-content {
-      position: relative;
-      max-width: 90%;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .modal-content img,
-    .modal-content video {
-      max-width: 100%;
-      max-height: 80vh;
-      border-radius: 12px;
-      object-fit: contain;
-    }
-
-    .close-btn {
-      position: absolute;
-      top: -50px;
-      right: 0;
-      color: white;
-      font-size: 32px;
-      cursor: pointer;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--card-bg);
-      border-radius: 50%;
-    }
-
-    @media (max-width: 640px) {
-      .gallery {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 12px;
-        padding: 0 16px 20px;
+  // 1. Authentikasi (Mandiri & Anonim)
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Auth error:", error);
       }
-      .media-container { height: 150px; }
-      header h1 { font-size: 1.8rem; }
-    }
-  </style>
-</head>
-<body>
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
 
-  <header>
-    <h1>Galeri Media Digital</h1>
-  </header>
+  // 2. Real-time Listener ke Firestore
+  useEffect(() => {
+    if (!user) return;
 
-  <div class="upload-section">
-    <div class="upload-container" onclick="document.getElementById('fileInput').click()">
-      <span>📁</span>
-      <p style="margin: 10px 0 5px;">Klik atau tarik file untuk unggah</p>
-      <small style="color: var(--text-muted)">Mendukung gambar dan video (MP4, PNG, JPG)</small>
-      <br>
-      <div class="btn-upload">Pilih File</div>
-      <input type="file" id="fileInput" accept="image/*,video/*" multiple onchange="handleUpload(this.files)">
-    </div>
-  </div>
-
-  <div class="gallery" id="gallery"></div>
-
-  <div class="modal" id="modal">
-    <div class="modal-content">
-      <div class="close-btn" onclick="closeModal()">×</div>
-      <div id="modalBody"></div>
-    </div>
-  </div>
-
-  <script>
-    const galleryContainer = document.getElementById('gallery');
-    const modal = document.getElementById('modal');
-    const modalBody = document.getElementById('modalBody');
-
-    // Default media
-    const defaultMedia = [
-      "1.mp4", "2.mp4", "1.png", "2.png"
-    ];
-
-    function getFileType(filename, fileObj = null) {
-      if (fileObj) {
-        return fileObj.type.startsWith('image/') ? 'image' : 
-               fileObj.type.startsWith('video/') ? 'video' : null;
-      }
-      const ext = filename.split('.').pop().toLowerCase();
-      const images = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
-      const videos = ['mp4', 'webm', 'ogg', 'mov'];
-      if (images.includes(ext)) return 'image';
-      if (videos.includes(ext)) return 'video';
-      return null;
-    }
-
-    function openModal(type, src) {
-      modal.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
+    // RULE: Gunakan path yang diizinkan /artifacts/{appId}/public/data/{collectionName}
+    const mediaCollection = collection(db, 'artifacts', appId, 'public', 'data', 'mediaItems');
+    
+    // Fetch semua data (Filter/Sort dilakukan di memory sesuai aturan Rule 2)
+    const unsubscribe = onSnapshot(mediaCollection, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
       
-      if (type === 'image') {
-        modalBody.innerHTML = `<img src="${src}" alt="Preview">`;
-      } else {
-        modalBody.innerHTML = `
-          <video controls autoplay playsinline style="width:100%">
-            <source src="${src}">
-          </video>`;
-      }
-    }
-
-    function closeModal() {
-      modal.style.display = 'none';
-      document.body.style.overflow = 'auto';
-      modalBody.innerHTML = '';
-    }
-
-    function createCard(fileSource, isNew = false, fileName = "") {
-      const nameToShow = fileName || fileSource;
-      const type = (typeof fileSource === 'string') ? getFileType(fileSource) : getFileType("", fileSource);
-      if (!type) return;
-
-      const src = (typeof fileSource === 'string') ? fileSource : URL.createObjectURL(fileSource);
-      const card = document.createElement('div');
-      card.className = 'card';
-      
-      let mediaHtml = '';
-      if (type === 'image') {
-        mediaHtml = `
-          <div class="media-container">
-            ${isNew ? '<div class="new-badge">BARU</div>' : ''}
-            <img src="${src}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Image'">
-          </div>`;
-      } else {
-        mediaHtml = `
-          <div class="media-container">
-            ${isNew ? '<div class="new-badge">BARU</div>' : ''}
-            <video src="${src}" muted preload="metadata"></video>
-            <div class="video-overlay"><div class="play-button"></div></div>
-          </div>`;
-      }
-
-      card.innerHTML = `${mediaHtml}<div class="info"><div class="name">${nameToShow}</div></div>`;
-      card.onclick = () => openModal(type, src);
-      
-      // Sisipkan di awal jika file baru diupload
-      if (isNew) {
-        galleryContainer.insertBefore(card, galleryContainer.firstChild);
-      } else {
-        galleryContainer.appendChild(card);
-      }
-    }
-
-    function handleUpload(files) {
-      Array.from(files).forEach(file => {
-        createCard(file, true, file.name);
-      });
-      // Scroll ke galeri setelah upload
-      galleryContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // Inisialisasi Galeri Default
-    defaultMedia.forEach(file => createCard(file));
-
-    // Listeners
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-
-    // Drag and Drop support
-    const dropZone = document.querySelector('.upload-container');
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, e => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, false);
+      // Urutkan berdasarkan waktu (terbaru di atas)
+      const sortedItems = items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setMediaList(sortedItems);
+      setLoading(false);
+    }, (error) => {
+      console.error("Firestore error:", error);
+      setLoading(false);
     });
 
-    dropZone.addEventListener('drop', e => {
-      const dt = e.dataTransfer;
-      handleUpload(dt.files);
-    });
-  </script>
-</body>
-</html>
+    return () => unsubscribe();
+  }, [user]);
 
+  // 3. Handle Upload (Simpan ke Firestore)
+  const handleFileUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
 
-    button:active {
-      transform: translateY(1px); /* Efek klik 3D */
-      box-shadow: 0 2px 4px var(--shadow-color);
-    }
+    setUploading(true);
+    const mediaCollection = collection(db, 'artifacts', appId, 'public', 'data', 'mediaItems');
 
-    /* Tombol Simpan */
-    button:nth-of-type(1) { /* Simpan */
-      background: var(--primary-color);
-      color: white;
-    }
-
-    /* Tombol Hapus Semua */
-    button:nth-of-type(2) { /* Hapus Semua */
-      background: var(--secondary-color);
-      color: var(--bg-color);
-    }
-
-    /* Area Catatan */
-    #catatan {
-      margin-top: 30px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
-    }
-
-    /* Setiap Catatan (Entry) */
-    .entry {
-      background: var(--card-bg-color);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 6px 15px var(--shadow-color); /* Efek 3D */
-      transition: transform 0.3s, box-shadow 0.3s;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .entry:hover {
-      transform: translateY(-5px); /* Sedikit naik saat hover */
-      box-shadow: 0 10px 20px var(--shadow-color);
-    }
-
-    .entry strong {
-      display: block;
-      font-size: 1.2em;
-      color: var(--primary-color);
-      margin-bottom: 10px;
-      border-bottom: 1px solid var(--input-bg-color);
-      padding-bottom: 5px;
-    }
-
-    .entry p {
-      margin-top: 0;
-      white-space: pre-wrap; /* Mempertahankan format baris baru */
-    }
-
-    .entry .metadata {
-      font-size: 0.8em;
-      color: var(--secondary-color);
-      margin-top: 15px;
-      text-align: right;
-    }
-
-    .entry button {
-      background: #7a1d1d; /* Merah gelap untuk hapus */
-      color: white;
-      padding: 5px 10px;
-      font-size: 0.9em;
-      border-radius: 5px;
-      align-self: flex-end;
-      margin-top: 10px;
-    }
-
-    /* Responsif */
-    @media (max-width: 600px) {
-      body {
-        padding: 15px;
-      }
-      button {
-        display: block;
-        width: 100%;
-        margin-right: 0;
-        margin-bottom: 10px;
-      }
-      #catatan {
-        grid-template-columns: 1fr;
+    for (let file of files) {
+      // Catatan: Firestore memiliki limit 1MB. 
+      // Untuk file besar secara profesional biasanya pakai Firebase Storage,
+      // tapi untuk simulasi ini kita simpan metadata dan Base64 untuk gambar kecil.
+      // Jika ingin menyimpan video/gambar besar, gunakan URL luar.
+      
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const type = file.type.startsWith('image') ? 'image' : 'video';
+        try {
+          await addDoc(mediaCollection, {
+            name: file.name,
+            url: event.target.result, // Menyimpan Base64 (Hanya untuk demo/file kecil)
+            type: type,
+            userId: user.uid,
+            createdAt: serverTimestamp()
+          });
+        } catch (err) {
+          console.error("Upload failed:", err);
+        }
+      };
+      
+      // Batasi ukuran untuk demo agar tidak error Firestore (max doc size 1MB)
+      if (file.size < 800000) {
+        reader.readAsDataURL(file);
+      } else {
+        alert(`File ${file.name} terlalu besar (>800KB). Gunakan file yang lebih kecil untuk demo Firestore ini.`);
       }
     }
-  </style>
-</head>
-<body>
-  <h1>📒 Buku Catatan Digital by Aerlune</h1>
-  
-  <input type="text" id="judul" placeholder="JUDUL CATATAN"><br>
-  <textarea id="isi" placeholder="Tulis catatanmu di sini..."></textarea><br>
-  <button onclick="simpanCatatan()">➕ Simpan Catatan</button>
-  <button onclick="hapusSemua()">🗑️ Hapus Semua</button>
-  
-  <div id="catatan"></div>
+    setUploading(false);
+    fileInputRef.current.value = '';
+  };
 
-  <script>
-    // Fungsi untuk memformat tanggal dan waktu
-    function formatTanggal(timestamp) {
-        const date = new Date(timestamp);
-        const options = { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit',
-            hour12: false // Format 24 jam
-        };
-        return date.toLocaleDateString('id-ID', options);
-    }
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 md:p-8">
+      {/* Header */}
+      <header className="text-center mb-10">
+        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
+          Galeri Media Cloud
+        </h1>
+        <p className="text-slate-400 mt-2">File yang diupload akan tersimpan selamanya di Cloud</p>
+      </header>
 
-    // Fungsi untuk menampilkan semua catatan
-    function tampilkanCatatan() {
-      // Mengambil data dari localStorage, default array kosong
-      let catatan = JSON.parse(localStorage.getItem('bukuMisteri')) || [];
-      let html = '';
+      {/* Upload Section */}
+      <section className="max-w-2xl mx-auto mb-12">
+        <div 
+          onClick={() => fileInputRef.current.click()}
+          className="border-2 border-dashed border-slate-700 rounded-3xl p-10 text-center bg-slate-800/50 hover:border-sky-500 hover:bg-sky-500/5 transition-all cursor-pointer group"
+        >
+          <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">☁️</div>
+          <p className="text-slate-300 font-medium">Klik untuk upload ke Cloud</p>
+          <p className="text-xs text-slate-500 mt-1">Mendukung Gambar & Video (Maks 800KB)</p>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+            accept="image/*,video/*"
+            multiple 
+          />
+          {uploading && <div className="mt-4 text-sky-400 text-sm animate-pulse">Sedang mengupload...</div>}
+        </div>
+      </section>
 
-      // Tampilkan catatan terbaru di atas
-      catatan.reverse().forEach((c, indexReverse) => {
-        // Karena kita membalik array untuk tampilan, kita perlu menghitung indeks asli untuk hapus
-        const indexAsli = catatan.length - 1 - indexReverse;
-        
-        // Memasukkan metadata waktu penyimpanan
-        const tanggalWaktu = c.timestamp ? formatTanggal(c.timestamp) : 'Tidak ada data waktu';
-
-        html += `
-          <div class="entry">
-            <div>
-              <strong>${c.judul}</strong>
-              <p>${c.isi}</p>
+      {/* Gallery Grid */}
+      {loading ? (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sky-500"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
+          {mediaList.map((item) => (
+            <div 
+              key={item.id} 
+              onClick={() => setModalMedia(item)}
+              className="bg-slate-800/40 border border-slate-700 rounded-2xl overflow-hidden hover:scale-[1.03] hover:border-sky-500 transition-all cursor-pointer group"
+            >
+              <div className="aspect-video bg-black flex items-center justify-center relative overflow-hidden">
+                {item.type === 'image' ? (
+                  <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  <>
+                    <video src={item.url} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center border border-white/40">
+                        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="p-3 text-center">
+                <p className="text-xs font-medium text-slate-300 truncate">{item.name}</p>
+              </div>
             </div>
-            <div class="metadata">
-              Disimpan: ${tanggalWaktu}
-            </div>
-            <button onclick="hapusCatatan(${indexAsli})">Hapus</button>
+          ))}
+        </div>
+      )}
+
+      {/* Modal Preview */}
+      {modalMedia && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setModalMedia(null)}
+        >
+          <button className="absolute top-6 right-6 text-white text-3xl">&times;</button>
+          <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
+            {modalMedia.type === 'image' ? (
+              <img src={modalMedia.url} className="w-full max-h-[80vh] object-contain rounded-lg" />
+            ) : (
+              <video src={modalMedia.url} controls autoPlay className="w-full max-h-[80vh] rounded-lg" />
+            )}
+            <p className="text-center mt-4 text-slate-400">{modalMedia.name}</p>
           </div>
-        `;
-      });
+        </div>
+      )}
 
-      document.getElementById('catatan').innerHTML = html;
-    }
+      {mediaList.length === 0 && !loading && (
+        <div className="text-center py-20 text-slate-600">
+          Belum ada media. Jadilah yang pertama mengupload!
+        </div>
+      )}
+    </div>
+  );
+};
 
-    // Fungsi untuk menyimpan catatan baru
-    function simpanCatatan() {
-      let judul = document.getElementById('judul').value.trim();
-      let isi = document.getElementById('isi').value.trim();
+export default App;
 
-      if (!judul || !isi) {
-        alert('❗ Judul dan Isi Catatan harus diisi!');
-        return;
-      }
-
-      // Mendapatkan waktu saat ini
-      const timestamp = new Date().getTime();
-
-      let catatan = JSON.parse(localStorage.getItem('bukuMisteri')) || [];
-      // Menambahkan objek catatan baru, termasuk timestamp
-      catatan.push({judul, isi, timestamp}); 
-
-      localStorage.setItem('bukuMisteri', JSON.stringify(catatan));
-
-      // Reset input form
-      document.getElementById('judul').value = '';
-      document.getElementById('isi').value = '';
-
-      tampilkanCatatan();
-    }
-
-    // Fungsi untuk menghapus catatan tertentu
-    function hapusCatatan(index) {
-      let catatan = JSON.parse(localStorage.getItem('bukuMisteri')) || [];
-      const judulDihapus = catatan[index].judul;
-      
-      if (confirm(`Yakin hapus catatan: "${judulDihapus}"?`)) {
-        catatan.splice(index, 1);
-        localStorage.setItem('bukuMisteri', JSON.stringify(catatan));
-        tampilkanCatatan();
-      }
-    }
-
-    // Fungsi untuk menghapus semua catatan
-    function hapusSemua() {
-      if (confirm('⚠️ Yakin mau hapus SEMUA catatan? Aksi ini tidak bisa dibatalkan!')) {
-        localStorage.removeItem('bukuMisteri');
-        tampilkanCatatan();
-      }
-    }
-
-    // Tampilkan catatan saat pertama kali dibuka
-    tampilkanCatatan();
-  </script>
-</body>
-</html>
+                      
