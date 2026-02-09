@@ -1,201 +1,217 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from 'firebase/firestore';
-
-// --- CONFIGURATION ---
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'media-gallery-app';
-
-const App = () => {
-  const [user, setUser] = useState(null);
-  const [mediaList, setMediaList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalMedia, setModalMedia] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
-
-  // 1. Authentikasi (Mandiri & Anonim)
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri Media Cloud</title>
+    <!-- Tailwind CSS untuk desain premium -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at top, #1e293b, #0f172a);
+            min-height: 100vh;
+            color: #f8fafc;
         }
-      } catch (error) {
-        console.error("Auth error:", error);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  // 2. Real-time Listener ke Firestore
-  useEffect(() => {
-    if (!user) return;
-
-    // RULE: Gunakan path yang diizinkan /artifacts/{appId}/public/data/{collectionName}
-    const mediaCollection = collection(db, 'artifacts', appId, 'public', 'data', 'mediaItems');
-    
-    // Fetch semua data (Filter/Sort dilakukan di memory sesuai aturan Rule 2)
-    const unsubscribe = onSnapshot(mediaCollection, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Urutkan berdasarkan waktu (terbaru di atas)
-      const sortedItems = items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      setMediaList(sortedItems);
-      setLoading(false);
-    }, (error) => {
-      console.error("Firestore error:", error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // 3. Handle Upload (Simpan ke Firestore)
-  const handleFileUpload = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !user) return;
-
-    setUploading(true);
-    const mediaCollection = collection(db, 'artifacts', appId, 'public', 'data', 'mediaItems');
-
-    for (let file of files) {
-      // Catatan: Firestore memiliki limit 1MB. 
-      // Untuk file besar secara profesional biasanya pakai Firebase Storage,
-      // tapi untuk simulasi ini kita simpan metadata dan Base64 untuk gambar kecil.
-      // Jika ingin menyimpan video/gambar besar, gunakan URL luar.
-      
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const type = file.type.startsWith('image') ? 'image' : 'video';
-        try {
-          await addDoc(mediaCollection, {
-            name: file.name,
-            url: event.target.result, // Menyimpan Base64 (Hanya untuk demo/file kecil)
-            type: type,
-            userId: user.uid,
-            createdAt: serverTimestamp()
-          });
-        } catch (err) {
-          console.error("Upload failed:", err);
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-      };
-      
-      // Batasi ukuran untuk demo agar tidak error Firestore (max doc size 1MB)
-      if (file.size < 800000) {
-        reader.readAsDataURL(file);
-      } else {
-        alert(`File ${file.name} terlalu besar (>800KB). Gunakan file yang lebih kecil untuk demo Firestore ini.`);
-      }
-    }
-    setUploading(false);
-    fileInputRef.current.value = '';
-  };
+    </style>
+</head>
+<body>
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans p-4 md:p-8">
-      {/* Header */}
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-extrabold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
-          Galeri Media Cloud
-        </h1>
-        <p className="text-slate-400 mt-2">File yang diupload akan tersimpan selamanya di Cloud</p>
-      </header>
+    <div class="max-w-7xl mx-auto px-4 py-10">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
+                Galeri Media Cloud
+            </h1>
+            <p class="text-slate-400 mt-3">Simpan foto dan video secara permanen di database online</p>
+        </header>
 
-      {/* Upload Section */}
-      <section className="max-w-2xl mx-auto mb-12">
-        <div 
-          onClick={() => fileInputRef.current.click()}
-          className="border-2 border-dashed border-slate-700 rounded-3xl p-10 text-center bg-slate-800/50 hover:border-sky-500 hover:bg-sky-500/5 transition-all cursor-pointer group"
-        >
-          <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">☁️</div>
-          <p className="text-slate-300 font-medium">Klik untuk upload ke Cloud</p>
-          <p className="text-xs text-slate-500 mt-1">Mendukung Gambar & Video (Maks 800KB)</p>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            className="hidden" 
-            accept="image/*,video/*"
-            multiple 
-          />
-          {uploading && <div className="mt-4 text-sky-400 text-sm animate-pulse">Sedang mengupload...</div>}
-        </div>
-      </section>
-
-      {/* Gallery Grid */}
-      {loading ? (
-        <div className="flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-sky-500"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-7xl mx-auto">
-          {mediaList.map((item) => (
-            <div 
-              key={item.id} 
-              onClick={() => setModalMedia(item)}
-              className="bg-slate-800/40 border border-slate-700 rounded-2xl overflow-hidden hover:scale-[1.03] hover:border-sky-500 transition-all cursor-pointer group"
-            >
-              <div className="aspect-video bg-black flex items-center justify-center relative overflow-hidden">
-                {item.type === 'image' ? (
-                  <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                ) : (
-                  <>
-                    <video src={item.url} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                      <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center border border-white/40">
-                        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
-                      </div>
+        <!-- Area Upload -->
+        <section class="max-w-2xl mx-auto mb-16">
+            <div id="dropZone" class="glass-card rounded-3xl p-8 text-center border-2 border-dashed border-slate-700 hover:border-sky-500 hover:bg-sky-500/5 transition-all cursor-pointer group">
+                <div class="text-5xl mb-4 group-hover:scale-110 transition-transform">☁️</div>
+                <h3 class="text-lg font-semibold">Klik atau Tarik File Ke Sini</h3>
+                <p class="text-slate-400 text-sm mt-1">Gambar & Video (Maks 800KB untuk demo)</p>
+                <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" multiple>
+                
+                <!-- Loading Indicator -->
+                <div id="uploadStatus" class="hidden mt-4">
+                    <div class="flex items-center justify-center space-x-2 text-sky-400">
+                        <div class="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-sm font-medium">Sedang mengupload ke Cloud...</span>
                     </div>
-                  </>
-                )}
-              </div>
-              <div className="p-3 text-center">
-                <p className="text-xs font-medium text-slate-300 truncate">{item.name}</p>
-              </div>
+                </div>
             </div>
-          ))}
-        </div>
-      )}
+        </section>
 
-      {/* Modal Preview */}
-      {modalMedia && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300"
-          onClick={() => setModalMedia(null)}
-        >
-          <button className="absolute top-6 right-6 text-white text-3xl">&times;</button>
-          <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-            {modalMedia.type === 'image' ? (
-              <img src={modalMedia.url} className="w-full max-h-[80vh] object-contain rounded-lg" />
-            ) : (
-              <video src={modalMedia.url} controls autoPlay className="w-full max-h-[80vh] rounded-lg" />
-            )}
-            <p className="text-center mt-4 text-slate-400">{modalMedia.name}</p>
-          </div>
+        <!-- Grid Galeri -->
+        <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <!-- Item akan muncul di sini via JavaScript -->
         </div>
-      )}
 
-      {mediaList.length === 0 && !loading && (
-        <div className="text-center py-20 text-slate-600">
-          Belum ada media. Jadilah yang pertama mengupload!
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden text-center py-20 text-slate-500 italic">
+            Belum ada file di Cloud. Silakan upload file pertama Anda!
         </div>
-      )}
     </div>
-  );
-};
 
-export default App;
+    <!-- Modal Preview -->
+    <div id="modal" class="fixed inset-0 z-50 bg-black/95 hidden items-center justify-center p-4">
+        <div class="absolute top-6 right-6 text-white text-4xl cursor-pointer" onclick="closeModal()">&times;</div>
+        <div id="modalBody" class="max-w-5xl w-full flex flex-col items-center">
+            <!-- Konten preview (img/video) -->
+        </div>
+    </div>
 
-                      
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Konfigurasi Firebase dari Environment
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-gallery';
+
+        // Init Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const galleryGrid = document.getElementById('galleryGrid');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const emptyState = document.getElementById('emptyState');
+        const modal = document.getElementById('modal');
+        const modalBody = document.getElementById('modalBody');
+
+        let currentUser = null;
+
+        // 1. Auth Login
+        signInAnonymously(auth).catch(console.error);
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                listenToData();
+            }
+        });
+
+        // 2. Listen ke Firestore (Real-time)
+        function listenToData() {
+            // Path sesuai aturan: /artifacts/{appId}/public/data/{collection}
+            const dataPath = collection(db, 'artifacts', appId, 'public', 'data', 'mediaItems');
+            
+            onSnapshot(dataPath, (snapshot) => {
+                const docs = [];
+                snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+                
+                // Urutkan terbaru di atas
+                docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                
+                renderGallery(docs);
+            }, (error) => {
+                console.error("Firestore Error:", error);
+            });
+        }
+
+        // 3. Render ke HTML
+        function renderGallery(items) {
+            galleryGrid.innerHTML = '';
+            if (items.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-card rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-all border border-slate-800 hover:border-sky-500/50 group";
+                
+                const isVideo = item.type === 'video';
+                const mediaTag = isVideo 
+                    ? `<video src="${item.url}" class="w-full h-full object-cover"></video>
+                       <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+                           <div class="w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center border border-white/40">
+                               <div class="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                           </div>
+                       </div>`
+                    : `<img src="${item.url}" class="w-full h-full object-cover" loading="lazy">`;
+
+                card.innerHTML = `
+                    <div class="aspect-video bg-black relative">${mediaTag}</div>
+                    <div class="p-3">
+                        <p class="text-xs text-slate-400 truncate text-center">${item.name}</p>
+                    </div>
+                `;
+                
+                card.onclick = () => openModal(item);
+                galleryGrid.appendChild(card);
+            });
+        }
+
+        // 4. Handle Upload
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => handleUpload(e.target.files);
+
+        async function handleUpload(files) {
+            if (!files.length || !currentUser) return;
+            uploadStatus.classList.remove('hidden');
+
+            const dataPath = collection(db, 'artifacts', appId, 'public', 'data', 'mediaItems');
+
+            for (let file of files) {
+                if (file.size > 850000) {
+                    alert(`File ${file.name} terlalu besar. Maksimal 800KB untuk demo Firestore.`);
+                    continue;
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const type = file.type.startsWith('image') ? 'image' : 'video';
+                    try {
+                        await addDoc(dataPath, {
+                            name: file.name,
+                            url: e.target.result, // Simpan sebagai Base64
+                            type: type,
+                            createdAt: serverTimestamp(),
+                            uid: currentUser.uid
+                        });
+                    } catch (err) {
+                        console.error("Upload Error:", err);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            setTimeout(() => {
+                uploadStatus.classList.add('hidden');
+                fileInput.value = '';
+            }, 1000);
+        }
+
+        // Modal Functions
+        window.openModal = (item) => {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            modalBody.innerHTML = item.type === 'image' 
+                ? `<img src="${item.url}" class="max-h-[80vh] rounded-lg shadow-2xl">`
+                : `<video src="${item.url}" controls autoplay class="max-h-[80vh] w-full rounded-lg shadow-2xl"></video>`;
+            modalBody.innerHTML += `<p class="mt-4 text-slate-400">${item.name}</p>`;
+        };
+
+        window.closeModal = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            modalBody.innerHTML = '';
+        };
+
+        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    </script>
+</body>
+</html>
+
