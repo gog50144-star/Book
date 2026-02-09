@@ -1,76 +1,386 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📒 Buku Catatan Digital V2</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium Media Gallery & Upload</title>
   <style>
-    /* Palet Warna & Font */
     :root {
-      --bg-color: #1a1a2e;        /* Latar belakang gelap */
-      --card-bg-color: #2c2c54;   /* Latar belakang kartu catatan */
-      --text-color: #e6e6e6;      /* Warna teks terang */
-      --primary-color: #ff6b6b;   /* Warna aksi/tombol utama */
-      --secondary-color: #4ecdc4; /* Warna sekunder/tanggal */
-      --input-bg-color: #3f3f7a;  /* Latar belakang input */
-      --shadow-color: rgba(0, 0, 0, 0.4);
+      --bg-color: #0f172a;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --accent-color: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      padding: 30px;
-      background: var(--bg-color);
-      color: var(--text-color);
-      line-height: 1.6;
-      transition: background 0.3s;
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, #0f172a);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
     }
 
-    /* Judul Utama */
-    h1 {
-      color: var(--primary-color);
+    header {
       text-align: center;
-      margin-bottom: 30px;
-      letter-spacing: 1.5px;
-      text-shadow: 2px 2px 5px var(--shadow-color);
+      padding: 40px 20px 20px;
     }
 
-    /* Area Input */
-    input[type="text"], textarea {
-      width: 100%;
-      padding: 15px;
-      margin-bottom: 15px;
-      border: none;
-      border-radius: 8px;
-      background: var(--input-bg-color);
-      color: var(--text-color);
-      box-shadow: inset 0 2px 4px var(--shadow-color);
-      resize: vertical;
-      font-size: 16px;
-      transition: box-shadow 0.3s, background 0.3s;
+    header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    input[type="text"]:focus, textarea:focus {
-      outline: none;
-      box-shadow: 0 0 10px var(--primary-color), inset 0 2px 4px var(--shadow-color);
+    /* Upload Section Styles */
+    .upload-section {
+      max-width: 600px;
+      margin: 0 auto 40px;
+      padding: 0 24px;
     }
 
-    /* Tombol Aksi */
-    button {
-      padding: 10px 20px;
-      margin-right: 10px;
-      border: none;
-      border-radius: 50px; /* Bentuk pil */
-      cursor: pointer;
-      font-weight: bold;
-      letter-spacing: 0.5px;
+    .upload-container {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 6px var(--shadow-color); /* Efek 3D awal */
+      cursor: pointer;
     }
 
-    button:hover {
-      transform: translateY(-2px); /* Efek hover 3D */
-      box-shadow: 0 6px 10px var(--shadow-color);
+    .upload-container:hover {
+      border-color: var(--accent-color);
+      background: rgba(56, 189, 248, 0.05);
     }
+
+    .upload-container i {
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .btn-upload {
+      display: inline-block;
+      background: var(--accent-color);
+      color: #000;
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+
+    .btn-upload:hover {
+      background: var(--accent-hover);
+    }
+
+    /* Gallery Styles */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 24px;
+      padding: 0 24px 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      border-color: var(--accent-color);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+
+    .new-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--accent-color);
+      color: #000;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 6px;
+      z-index: 10;
+    }
+
+    .media-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    img, video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .play-button {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .play-button::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 8px 0 8px 14px;
+      border-color: transparent transparent transparent #fff;
+      margin-left: 4px;
+    }
+
+    .info {
+      padding: 16px;
+    }
+
+    .name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-content {
+      position: relative;
+      max-width: 90%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .modal-content img,
+    .modal-content video {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: -50px;
+      right: 0;
+      color: white;
+      font-size: 32px;
+      cursor: pointer;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--card-bg);
+      border-radius: 50%;
+    }
+
+    @media (max-width: 640px) {
+      .gallery {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        padding: 0 16px 20px;
+      }
+      .media-container { height: 150px; }
+      header h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Galeri Media Digital</h1>
+  </header>
+
+  <div class="upload-section">
+    <div class="upload-container" onclick="document.getElementById('fileInput').click()">
+      <span>📁</span>
+      <p style="margin: 10px 0 5px;">Klik atau tarik file untuk unggah</p>
+      <small style="color: var(--text-muted)">Mendukung gambar dan video (MP4, PNG, JPG)</small>
+      <br>
+      <div class="btn-upload">Pilih File</div>
+      <input type="file" id="fileInput" accept="image/*,video/*" multiple onchange="handleUpload(this.files)">
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <div class="close-btn" onclick="closeModal()">×</div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const galleryContainer = document.getElementById('gallery');
+    const modal = document.getElementById('modal');
+    const modalBody = document.getElementById('modalBody');
+
+    // Default media
+    const defaultMedia = [
+      "1.mp4", "2.mp4", "1.png", "2.png"
+    ];
+
+    function getFileType(filename, fileObj = null) {
+      if (fileObj) {
+        return fileObj.type.startsWith('image/') ? 'image' : 
+               fileObj.type.startsWith('video/') ? 'video' : null;
+      }
+      const ext = filename.split('.').pop().toLowerCase();
+      const images = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+      const videos = ['mp4', 'webm', 'ogg', 'mov'];
+      if (images.includes(ext)) return 'image';
+      if (videos.includes(ext)) return 'video';
+      return null;
+    }
+
+    function openModal(type, src) {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      
+      if (type === 'image') {
+        modalBody.innerHTML = `<img src="${src}" alt="Preview">`;
+      } else {
+        modalBody.innerHTML = `
+          <video controls autoplay playsinline style="width:100%">
+            <source src="${src}">
+          </video>`;
+      }
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+      modalBody.innerHTML = '';
+    }
+
+    function createCard(fileSource, isNew = false, fileName = "") {
+      const nameToShow = fileName || fileSource;
+      const type = (typeof fileSource === 'string') ? getFileType(fileSource) : getFileType("", fileSource);
+      if (!type) return;
+
+      const src = (typeof fileSource === 'string') ? fileSource : URL.createObjectURL(fileSource);
+      const card = document.createElement('div');
+      card.className = 'card';
+      
+      let mediaHtml = '';
+      if (type === 'image') {
+        mediaHtml = `
+          <div class="media-container">
+            ${isNew ? '<div class="new-badge">BARU</div>' : ''}
+            <img src="${src}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Image'">
+          </div>`;
+      } else {
+        mediaHtml = `
+          <div class="media-container">
+            ${isNew ? '<div class="new-badge">BARU</div>' : ''}
+            <video src="${src}" muted preload="metadata"></video>
+            <div class="video-overlay"><div class="play-button"></div></div>
+          </div>`;
+      }
+
+      card.innerHTML = `${mediaHtml}<div class="info"><div class="name">${nameToShow}</div></div>`;
+      card.onclick = () => openModal(type, src);
+      
+      // Sisipkan di awal jika file baru diupload
+      if (isNew) {
+        galleryContainer.insertBefore(card, galleryContainer.firstChild);
+      } else {
+        galleryContainer.appendChild(card);
+      }
+    }
+
+    function handleUpload(files) {
+      Array.from(files).forEach(file => {
+        createCard(file, true, file.name);
+      });
+      // Scroll ke galeri setelah upload
+      galleryContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Inisialisasi Galeri Default
+    defaultMedia.forEach(file => createCard(file));
+
+    // Listeners
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    // Drag and Drop support
+    const dropZone = document.querySelector('.upload-container');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+
+    dropZone.addEventListener('drop', e => {
+      const dt = e.dataTransfer;
+      handleUpload(dt.files);
+    });
+  </script>
+</body>
+</html>
+
 
     button:active {
       transform: translateY(1px); /* Efek klik 3D */
