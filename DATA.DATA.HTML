@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alex Pratama</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #1c1c1c);
+    background-size: 400% 400%;
+    animation: gradientMove 12s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container {
+    width: 90%;
+    max-width: 400px;
+    padding: 30px 20px;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.5);
+    animation: fadeIn 1.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.profile {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid white;
+    margin-bottom: 15px;
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%,100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+p {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-bottom: 25px;
+}
+
+.button {
+    display: block;
+    margin: 12px 0;
+    padding: 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: bold;
+    color: white;
+    transition: 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.button::before {
+    content: "";
+    position: absolute;
+    width: 0%;
+    height: 100%;
+    background: rgba(255,255,255,0.2);
+    top: 0;
+    left: 0;
+    transition: 0.4s;
+}
+
+.button:hover::before {
+    width: 100%;
+}
+
+.button:hover {
+    transform: scale(1.05);
+}
+
+.youtube { background: #FF0000; }
+.instagram { background: #C13584; }
+.tiktok { background: #000000; }
+.twitter { background: #1DA1F2; }
+.facebook { background: #1877F2; }
+
+.footer {
+    margin-top: 20px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <img src="PP.png" alt="Profile" class="profile">
+
+    <h1>Alex Pratama</h1>
+    <p>Calm Mind | Night Sky 🌌</p>
+
+    <a class="button youtube" href="https://youtube.com/@USERNAME_KAMU" target="_blank">YouTube</a>
+    <a class="button instagram" href="https://instagram.com/USERNAME_KAMU" target="_blank">Instagram</a>
+    <a class="button tiktok" href="https://tiktok.com/@USERNAME_KAMU" target="_blank">TikTok</a>
+    <a class="button twitter" href="https://x.com/USERNAME_KAMU" target="_blank">X (Twitter)</a>
+    <a class="button facebook" href="https://facebook.com/USERNAME_KAMU" target="_blank">Facebook</a>
+
+    <div class="footer">© 2026 Alex Pratama</div>
+</div>
+
+</body>
+</html>
