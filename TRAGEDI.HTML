@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Premium Media Gallery</title>
+  <title>Galeri Media Premium</title>
   <style>
     :root {
       --bg-color: #0f172a;
       --card-bg: rgba(255, 255, 255, 0.05);
-      --accent-color: #38bdf8;
+      --warna-aksen: #38bdf8;
       --text-main: #f8fafc;
-      --text-muted: #94a3b8;
+      --teks-dibisukan: #94a3b8;
     }
 
     body {
@@ -38,11 +38,12 @@
     }
 
     header p {
-      color: var(--text-muted);
+      color: var(--teks-dibisukan);
       margin-top: 8px;
+      word-break: break-all;
     }
 
-    .gallery {
+    .galeri {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 24px;
@@ -65,7 +66,7 @@
 
     .card:hover {
       transform: translateY(-8px);
-      border-color: var(--accent-color);
+      border-color: var(--warna-aksen);
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
     }
 
@@ -87,7 +88,6 @@
       display: block;
     }
 
-    /* Icon Overlay for Video */
     .video-overlay {
       position: absolute;
       inset: 0;
@@ -154,24 +154,34 @@
 
     .modal-content {
       position: relative;
-      max-width: 90%;
-      max-height: 90vh;
+      width: 100%;
+      max-width: 900px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
-    .modal-content img,
-    .modal-content video {
+    .modal-body {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .modal-body img,
+    .modal-body video,
+    .modal-body iframe {
       max-width: 100%;
       max-height: 80vh;
       border-radius: 12px;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      object-fit: contain;
-      background: transparent;
+    }
+    
+    .modal-body iframe {
+        aspect-ratio: 16/9;
+        width: 100%;
     }
 
-    .close-btn {
+    .tutup-tombol {
       position: absolute;
       top: -50px;
       right: 0;
@@ -188,12 +198,12 @@
       transition: background 0.2s;
     }
 
-    .close-btn:hover {
+    .tutup-tombol:hover {
       background: rgba(255, 255, 255, 0.2);
     }
 
     @media (max-width: 640px) {
-      .gallery {
+      .galeri {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
         padding: 0 16px 20px;
@@ -206,17 +216,17 @@
 <body>
 
   <header>
-    <h1>Galeri Media Digital by revan </h1>
-    <p>Koleksi Foto & Video Eksklusif tes
-https://gog50144-star.github.io/Book/Abookv2.html</p>
+    <h1>Galeri Media Digital oleh Revan-alex-najwa-mike</h1>
+    <p>Koleksi Foto & Video Eksklusif</p>
+    <p style="font-size: 0.8rem; opacity: 0.6;">https://gog50144-star.github.io/Book/Abookv2.html</p>
   </header>
 
-  <div class="gallery" id="gallery"></div>
+  <div class="galeri" id="gallery"></div>
 
   <div class="modal" id="modal">
     <div class="modal-content">
-      <div class="close-btn" onclick="closeModal()">×</div>
-      <div id="modalBody"></div>
+      <div class="tutup-tombol" onclick="closeModal()">×</div>
+      <div id="modalBody" class="modal-body"></div>
     </div>
   </div>
 
@@ -225,29 +235,40 @@ https://gog50144-star.github.io/Book/Abookv2.html</p>
     const modal = document.getElementById('modal');
     const modalBody = document.getElementById('modalBody');
 
-    // Daftar file Anda
+    // Daftar file dan link Anda
+    // Anda bisa memasukkan nama file lokal atau link URL lengkap
     const mediaFiles = [
-      "1.mp4", "2.mp4", "3.mp4", "4.mp4", "5.mp4", "6.mp4",
-      "1.png", "2.png", "3.png", "4.png", "5.png", "6.png"
+      "1.mp4", "2.mp4", "3.mp4", "1.png", "2.png",
+      // Contoh menambahkan link video eksternal (YouTube atau Direct Link)
+      "https://www.w3schools.com/html/mov_bbb.mp4", 
+      "https://www.youtube.com/embed/dQw4w9WgXcQ",
+      "https://cdn.videy.co/HxFyCg741.mp4"
     ];
 
-    // Fungsi untuk memvalidasi tipe file
     function getFileType(filename) {
+      // Cek apakah itu link YouTube
+      if (filename.includes('youtube.com') || filename.includes('youtu.be')) return 'youtube';
+      
       const ext = filename.split('.').pop().toLowerCase();
       const images = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
       const videos = ['mp4', 'webm', 'ogg', 'mov'];
       
       if (images.includes(ext)) return 'image';
       if (videos.includes(ext)) return 'video';
+      
+      // Default jika tidak ada ekstensi (asumsi video jika ada link luar)
+      if (filename.startsWith('http')) return 'video';
       return null;
     }
 
     function openModal(type, src) {
       modal.style.display = 'flex';
-      document.body.style.overflow = 'hidden'; // Stop scrolling
+      document.body.style.overflow = 'hidden';
       
       if (type === 'image') {
-        modalBody.innerHTML = `<img src="${src}" alt="Preview">`;
+        modalBody.innerHTML = `<img src="${src}" alt="Pratinjau">`;
+      } else if (type === 'youtube') {
+        modalBody.innerHTML = `<iframe src="${src}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       } else {
         modalBody.innerHTML = `
           <video controls autoplay playsinline style="width:100%">
@@ -259,7 +280,7 @@ https://gog50144-star.github.io/Book/Abookv2.html</p>
 
     function closeModal() {
       modal.style.display = 'none';
-      document.body.style.overflow = 'auto'; // Re-enable scrolling
+      document.body.style.overflow = 'auto';
       modalBody.innerHTML = '';
     }
 
@@ -270,7 +291,6 @@ https://gog50144-star.github.io/Book/Abookv2.html</p>
       const card = document.createElement('div');
       card.className = 'card';
       
-      // Menggunakan fallback jika file tidak ditemukan
       const fallbackAttr = `onerror="this.src='https://placehold.co/400x300/1e293b/94a3b8?text=Error+Loading'"`;
 
       let mediaHtml = '';
@@ -280,19 +300,26 @@ https://gog50144-star.github.io/Book/Abookv2.html</p>
             <img src="${file}" loading="lazy" ${fallbackAttr}>
           </div>`;
       } else {
+        // Untuk video lokal maupun link, tampilkan thumbnail placeholder atau icon video
         mediaHtml = `
           <div class="media-container">
-            <video src="${file}" muted preload="metadata"></video>
+            ${type === 'youtube' ? 
+              `<img src="https://img.youtube.com/vi/${file.split('/').pop()}/0.jpg" ${fallbackAttr}>` :
+              `<video src="${file}" muted preload="metadata"></video>`
+            }
             <div class="video-overlay">
               <div class="play-button"></div>
             </div>
           </div>`;
       }
 
+      // Memperpendek nama tampilan jika itu link yang sangat panjang
+      const displayName = file.length > 25 ? file.substring(0, 22) + '...' : file;
+
       card.innerHTML = `
         ${mediaHtml}
         <div class="info">
-          <div class="name">${file}</div>
+          <div class="name">${displayName}</div>
         </div>
       `;
 
